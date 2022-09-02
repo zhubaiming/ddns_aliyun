@@ -17,7 +17,7 @@
 ###### 已测试系统
 - [x] Linux
 - [x] MacOS
-- [ ]Windows
+- [ ] Windows
 
 ---
 
