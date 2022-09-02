@@ -104,7 +104,7 @@ Class Ddns {
     private function compareIpRecord(string $ip, $ipType) {
         $sql = ""; // 如果使用数据库记录，请根据你自己的数据库设计格式去改写 SQL 语句(查询语句，查询最新一次更新的ip地址)
         $result = $this->conn->query($sql)->fetch(PDO::FETCH_LAZY);
-        $oldIp = $result ? $result->[column] : null;
+        $oldIp = $result ? $result->ip_addr : null;
 
         $networkOperator = $this->getNetworkOperator($ip);
 
@@ -116,17 +116,17 @@ Class Ddns {
             $this->conn->exec($sql);
 
             $this->conn->commit();
-            
+        
             $sql = null;
             $this->conn = null;
-            
+        
             return ($ip === $oldIp) ? true : false;
         } catch (PDOException $e) {
             $this->conn->rollBack();
             outputLog('error', '数据更新失败!失败原因：' . $e->getMessage());
         }
     }
-
+    
     /**
      * 获取网络运营商类型
      *
@@ -179,7 +179,7 @@ Class Ddns {
             outputLog('error', '阿里云错误：' . $e->getMessage());
         }
     }
-
+    
     /**
      * 添加解析记录
      *
@@ -234,7 +234,7 @@ Class Ddns {
             outputLog('error', '阿里云错误：' . $e->getMessage());
         }
     }
-
+    
     /**
      * 设置解析记录状态
      *
@@ -265,15 +265,16 @@ Class Ddns {
         $remark = explode(',', $remark);
         $RR = array_column($list, 'RR');
 
-        foreach ($rr as $value) {
+        foreach ($rr as $key => $value) {
             if (in_array($value, $RR)) {
-                $this->aliUpdateDomainRecord($list[array_search($value, $RR)]['RecordId'], $value, $type, $ip, $client, $runtime);
+                $RecordId = $list[array_search($value, $RR)]['RecordId'];
+                $this->aliUpdateDomainRecord($RecordId, $value, $type, $ip, $client, $runtime);
             } else {
-                $this->aliAddDomainRecord($domainName, $value, $type, $ip, $client, $runtime);
+                $RecordId = $this->aliAddDomainRecord($domainName, $value, $type, $ip, $client, $runtime)->toMap()['body']['RecordId'];
             }
 
-            $this->aliUpdateDomainRecordRemark($value['RecordId'], $client, $runtime, $remark[array_search($value['RR'], $rr)]??'');
-            $this->aliSetDomainRecordStatus($value['RecordId'], $client, $runtime);
+            $this->aliUpdateDomainRecordRemark($RecordId, $client, $runtime, $remark[$key]??'');
+            $this->aliSetDomainRecordStatus($RecordId, $client, $runtime);
         }
     }
 }
